@@ -1,7 +1,7 @@
 @echo off
-SET redis_server=..\..\bin\windows\x64\redis-server
-SET redis_sentinel=..\..\bin\windows\x64\redis-server
-SET redis_cli=..\..\bin\windows\x64\redis-cli
+SET redis_server=..\..\bin\windows\redis-server
+SET redis_sentinel=..\..\bin\windows\redis-server
+SET redis_cli=..\..\bin\windows\redis-cli
 
 start %redis_server% server-6380\redis.conf
 start %redis_sentinel% server-6380\sentinel.conf --sentinel

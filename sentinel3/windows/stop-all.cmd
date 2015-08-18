@@ -1,5 +1,5 @@
 @echo off
-SET redis_cli=..\..\bin\windows\x64\redis-cli
+SET redis_cli=..\..\bin\windows\redis-cli
 
 %redis_cli% -p 26382 SHUTDOWN NOSAVE
 %redis_cli% -p 26381 SHUTDOWN NOSAVE
