@@ -54,7 +54,7 @@ Note: The bash scripts for OSX and Linux require execute permission which can be
 After spawning the different redis-server instances the `start-all` script will pause. Wait a few seconds until you see **+slave** and **+sentinel** log entries in the sentinel servers console which shows the sentinels successfully auto-detecting and registering the different slave and sentinel instances. Hitting return will ping the first 2 Sentinel servers for info on the current master and slaves, showing everything is working and configured correctly.
 
 
-## [Basic Sentinel Setup monitoring 1x Master and 2x Slaves](http://redis.io/topics/sentinel#example-2-basic-setup-with-three-boxes)
+## [3x Sentinels monitoring 1x Master and 2x Slaves](http://redis.io/topics/sentinel#example-2-basic-setup-with-three-boxes)
 
 With the efficiency and headroom provided from a single redis-server instance, we expect this minimal Sentinel configuration required to achieve high-availability will be the most popular configuration used for Sentinel, which this repository focuses on.
 
@@ -79,11 +79,11 @@ This setup enables a "highly-available" configuration which can survive a single
 
 ### Redis Slave Server failing
 
-If any of the slave servers fail it's business as usual but, just one less replicated slave. This would still cause temporary disruption for any read-only clients that were connected to the failed slave, but if your Redis client library [follows the recommended client strategy](http://redis.io/topics/sentinel-clients), the next time it tries to re-connect it will ask the Sentinel for the next address and connect to one of the other available instances, automatically recovering.
+If any of the slave servers fail it's business as usual with just one less replicated slave. This would still cause temporary disruption for any read-only clients that were connected to the failed slave. Redis clients [following the recommended client strategy](http://redis.io/topics/sentinel-clients) automatically recovers by asking one of the Sentinels for the next available address to connect to, resuming operations with one of the available instances.
 
 ### Redis Master Server failing
 
-It's more disruptive when the master server fails since that's where most of the clients are going to be connected to, who'll only be able to resume until the remaining 2 Sentinels both agree (quorum = 2) the master is **objectively down** and begins the process of failing over promoting one of the replicated slaves to master. Since replication to slaves is asynchronous there's a small window for loss of writes to master that weren't replicated in time before it failed. 
+It's more disruptive when the master server fails since that's where most of the clients are going to be connected to, who'll only be able to resume until the remaining 2 Sentinels both agree (quorum=2) the master is **objectively down** and begins the process of failing over promoting one of the replicated slaves to master. Since replication to slaves is asynchronous there's a small window for loss of writes to master that weren't replicated in time before it failed. 
 
 There's a greater potential for loss if there's instead a network split, cutting off the master server from the remaining sentinel servers, i.e:
 
