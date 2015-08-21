@@ -1,16 +1,14 @@
 # Configure Redis Sentinel
 
-This repository contains the necessary configuration and redis binaries to quickly setup the [Basic Sentinel configuration](http://redis.io/topics/sentinel#example-2-basic-setup-with-three-boxes) on either Linux, OSX or Windows servers. The default configuration supports spawning multiple redis processes which can conveniently all be run on a single server using the included start-all/stop-all scripts (ideal for development environments mimicking their production Sentinel environments). 
-
-The configurations are split into separate `server-{port}` directories which are easily customizable to run on different servers using the included per-server start/stop scripts.
+This repository contains the necessary configuration and redis binaries to quickly setup the [Basic Sentinel configuration](http://redis.io/topics/sentinel#example-2-basic-setup-with-three-boxes) on Linux, OSX or Windows servers. The default configuration supports spawning multiple redis processes which can conveniently all be run on a single server using the included start-all/stop-all scripts (ideal for development environments mimicking their production Sentinel environments). 
 
 ## Usage 
 
-To run the included Sentinel configuration just clone this repository on the server you want to run it on:
+To run the included Sentinel configuration, clone this repo on the server you want to run it on:
 
     git clone https://github.com/ServiceStack/redis-config.git
     
-Then run the scripts for the target Operating System. This repository includes the [latest stable](http://redis.io/download) pre-built binaries for OSX and [MSOpen Tech's latest builds](https://github.com/ServiceStack/redis-windows#running-microsofts-native-port-of-redis) for Windows. As Linux binaries are less portable, the Linux bash scripts assumes an existing install of redis is available in your $PATH.
+Then run the scripts for the target Operating System. This repository includes the [latest stable](http://redis.io/download) pre-built binaries for OSX and [MSOpen Tech's latest builds](https://github.com/ServiceStack/redis-windows#running-microsofts-native-port-of-redis) for Windows port of Redis in the `/bin` folder. Due to Linux binaries being less portable, the Linux bash scripts assumes an existing install of redis is available in your $PATH.
 
 ### Windows
 
@@ -45,23 +43,30 @@ Shutdown started instances:
 
     ./stop-all.sh
 
-Note: The bash scripts for OSX and Linux require execute permission which can be enabled with:
+The bash scripts for OSX and Linux require execute permission which can be enabled with:
 
     chmod a=rx start-all.sh
+    chmod a=rx stop-all.sh
 
-### Notes
+### Checking the running instances
 
-After spawning the different redis-server instances the `start-all` script will pause. Wait a few seconds until you see **+slave** and **+sentinel** log entries in the sentinel servers console which shows the sentinels successfully auto-detecting and registering the different slave and sentinel instances. Hitting return will ping the first 2 Sentinel servers for info on the current master and slaves, showing everything is working and configured correctly. 
+After spawning multiple redis-server instances the `start-all` script will pause for a key press. Wait a few seconds before hitting return until you see **+slave** and **+sentinel** log entries in the Sentinel's console output. These entries show the sentinels successfully auto-detecting and registering the different redis instances. 
 
-To capture the active state of the roles of the different redis instances, redis will add this information to the bottom of the redis configuration. You can reset it back to the original configuration by discarding all changes which git lets us do with:
+Hitting return will ask the first 2 Sentinel servers for info of the current master and slaves. If everything's configured and working correctly it will show info on each server.
+
+### Reset to Original Configuration
+
+To capture the active roles of the different redis instances, redis will rewrite the redis.conf and sentinel.conf files. You can reset it back to the original configuration by discarding all changes in your cloned git repository which git lets us do with:
 
     $ git reset --hard head
 
 ## Sentinel Configuration
 
-The goal of this project is to specify the minimal amount of info required to create a working Sentinel configuration. Anything not specified falls back to use the **redis.conf** defaults shipped with the latest stable Redis distribution. 
+The goal of this project is to specify the minimal amount of info required to create a working Sentinel configuration. Anything not specified falls back to use the original **redis.conf** defaults shipped with the latest stable distribution of Redis. 
 
-We'll take a close look at how one of the slaves are configured to see how it fits together. For this example we'll walk through the OSX configuration located at [/sentine3/osx](https://github.com/ServiceStack/redis-config/tree/master/sentinel3/osx):
+The configurations are logically split into separate `/server-{port}` directories to match the redis and sentinel instances to run on each server. They use layered config so they're easily customizable and can be started independently with the included per-server start/stop scripts.
+
+We'll take a close look at how one of the slaves are configured to see how it fits together. For this example we'll walk through the configurations for OSX located at [/sentine3/osx](https://github.com/ServiceStack/redis-config/tree/master/sentinel3/osx):
 
 ```
 /osx
@@ -74,11 +79,11 @@ We'll take a close look at how one of the slaves are configured to see how it fi
 redis.conf         #Default redis.conf shipped in latest Redis Stable
 ```
 
-From the directory structure above we'll see there's a separate configuration for the master (6380) and its slaves (6381,6382) instances. We've started from port 6380 so this could also be run along-side an existing redis intance on 6379 (if needed).
+From the directory structure above we see there's a separate configuration for the master (6380) and its slaves (6381,6382) instances. We've started from port 6380 so this could also be run along-side an existing redis intance on 6379 if needed.
 
 #### [/server-6381/redis.conf](https://github.com/ServiceStack/redis-config/blob/master/sentinel3/osx/server-6381/redis.conf):
 
-The configuration for this slave is contained in redis.conf which is just:
+The configuration for this slave is contained in `redis.conf` which is just:
 
 ```
 # Relative to ./sentinel3/osx
@@ -89,11 +94,11 @@ dir ./server-6381/state
 slaveof 127.0.0.1 6380
 ```
 
-The `include` directive lets us easily inherit the default redis.conf allowing us to only having to override the configuration that's specific to this slave. In this case it will run on port **6381**, persist any RDB snapshots in `./state` directory and will be a replicated slave to the redis master instance running on on port **127.0.0.1 6380**:
+The `include` directive lets us easily inherit the default `/redis.conf` allowing us to only provide non-default configuration specific to this slave. In this case it will run on port **6381**, persist any RDB snapshots in **./server-6381/state** directory and run as a replicated slave to the master instance running on **127.0.0.1 6380**:
 
 #### [/server-6381/sentinel.conf](https://github.com/ServiceStack/redis-config/blob/master/sentinel3/osx/server-6381/sentinel.conf):
 
-The configuration for the Sentinel indicates it should run on port **26381** and monitor the master at **127.0.0.1 6380** which belongs to the **mymaster** group and requires a quorum of **2** sentinels to reach consensus before any action is taken:
+The configuration for the Sentinel indicates it should run on port **26381** and monitor the master at **127.0.0.1 6380** that belongs to the **mymaster** group and requires a quorum of **2** sentinels to reach consensus before any action can be taken:
 
 ```
 # Relative to ./sentinel3/osx
@@ -105,9 +110,11 @@ sentinel monitor mymaster 127.0.0.1 6380 2
 
 ### Localhost vs Network IP's
 
-This configuration assumes all redis instances are running locally (i.e. 127.0.0.1). If you instead wanted to run it on a remote server that anyone in your network can access, you'll need to either change the IP Address to use its Network IP.
+This configuration assumes all redis instances are running locally on **127.0.0.1**. If you're instead running it on a remote server that you want anyone in your network to be able to access, you'll need to either change the IP Address in the `*.conf` to use the servers Network IP or alternatively you can leave the defaults but you'll need to map any loopback IP's to its Network IP in the Redis Client library. 
 
-You can also choose to keep the default configuration but you'll need to map the local loopback IP to the Network IP. This feature is available in the C# [ServiceStack.Redis](https://github.com/ServiceStack/ServiceStack.Redis) with the `IpAddressMap` Dictionary. E.g. if the remote server's Network IP was **10.0.0.9** you can connect to it with:
+This can be configured in the C# [ServiceStack.Redis](https://github.com/ServiceStack/ServiceStack.Redis) `RedisSentinel` client using the `IpAddressMap` Dictionary. 
+
+E.g. if the remote servers Network IP is **10.0.0.9**, it can be configured with:
 
 ```csharp
 var sentinel = new RedisSentinel(new[]{ "10.0.0.9:26380" }) {
@@ -120,7 +127,7 @@ container.Register<IRedisClientsManager>(c => sentinel.Start());
 
 The `IpAddressMap` is used to transparently map any returned local **127.0.0.1** IP Address to the **10.0.0.9** Network IP that any other computer on the same network can connect to. 
 
-The `RedisSentinel` client just needs to be configured with a single Sentinel IP which it uses to automatically resolve the IP Addresses of all the other Sentinels.
+The `RedisSentinel` client also just needs to be configured with a single Sentinel IP which it uses to automatically resolve the IP Addresses of the remaining Sentinels.
 
 ## [3x Sentinels monitoring 1x Master and 2x Slaves](http://redis.io/topics/sentinel#example-2-basic-setup-with-three-boxes)
 
