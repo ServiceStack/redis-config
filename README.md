@@ -1,6 +1,6 @@
-![Instant Redis Setup](https://raw.githubusercontent.com/ServiceStack/Assets/master/img/redis/instant-sentinel-setup.png)
+# Instant Redis Sentinel Setup
 
-# Configure Redis Sentinel
+![Instant Redis Sentinel Setup](https://raw.githubusercontent.com/ServiceStack/Assets/master/img/redis/instant-sentinel-setup.png)
 
 This repository contains the necessary configuration and redis binaries to quickly setup the [Basic Sentinel configuration](http://redis.io/topics/sentinel#example-2-basic-setup-with-three-boxes) on Linux, OSX or Windows servers. The default configuration supports spawning multiple redis processes which can conveniently all be run on a single server using the included start-all/stop-all scripts (ideal for development environments mimicking their production Sentinel environments). 
 
